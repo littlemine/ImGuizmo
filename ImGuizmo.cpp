@@ -2296,7 +2296,7 @@ namespace IMGUIZMO_NAMESPACE
          matrix_t deltaMatrixScale;
          auto totscale = gContext.mScale * gContext.mScaleValueOrigin;
          float mul = totscale[0] * totscale[1] * totscale[2];
-         bool valid = mul > 1e-6;
+         bool valid = mul > 1e-6 && totscale[0] > 1e-6 && totscale[1] > 1e-6 && totscale[2] > 1e-6;
 
          if (valid) {
             deltaMatrixScale.Scale(gContext.mScale * gContext.mScaleValueOrigin);
