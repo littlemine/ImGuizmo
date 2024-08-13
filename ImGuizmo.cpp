@@ -1404,7 +1404,9 @@ namespace IMGUIZMO_NAMESPACE
       }
 
       // draw screen cirle
-      drawList->AddCircleFilled(gContext.mScreenSquareCenter, gContext.mStyle.CenterCircleSize, colors[0], 32);
+      if (!(gContext.mbUsing && (gContext.mActualID == -1 || gContext.mActualID == gContext.mEditingID) && type != MT_SCALE_XYZ))
+         // check ComputeContext, rect length is 20.f
+         drawList->AddCircle(gContext.mScreenSquareCenter, 20.f, colors[0], 32, 2.5f);  // gContext.mStyle.CenterCircleSize
 
       if (gContext.mbUsing && (gContext.mActualID == -1 || gContext.mActualID == gContext.mEditingID) && IsScaleType(type))
       {
@@ -1583,7 +1585,8 @@ namespace IMGUIZMO_NAMESPACE
          }
       }
 
-      drawList->AddCircleFilled(gContext.mScreenSquareCenter, gContext.mStyle.CenterCircleSize, colors[0], 32);
+      if (!(gContext.mbUsing && (gContext.mActualID == -1 || gContext.mActualID == gContext.mEditingID) && type == MT_SCALE_XYZ))
+         drawList->AddCircleFilled(gContext.mScreenSquareCenter, gContext.mStyle.CenterCircleSize, colors[0], 32);
 
       if (gContext.mbUsing && (gContext.mActualID == -1 || gContext.mActualID == gContext.mEditingID) && IsTranslateType(type))
       {
@@ -1889,12 +1892,10 @@ namespace IMGUIZMO_NAMESPACE
       ImGuiIO& io = ImGui::GetIO();
       int type = MT_NONE;
 
-      // screen
-      if (io.MousePos.x >= gContext.mScreenSquareMin.x && io.MousePos.x <= gContext.mScreenSquareMax.x &&
-         io.MousePos.y >= gContext.mScreenSquareMin.y && io.MousePos.y <= gContext.mScreenSquareMax.y &&
-         Contains(op, SCALE))
-      {
-         type = MT_SCALE_XYZ;
+      // screen (gContext.mScreenSquareMax - Min diameter)
+      if ((makeVect(io.MousePos) - makeVect(gContext.mScreenSquareCenter)).LengthSq() <= 20 * 20 * 2
+          && Contains(op, SCALE)) {
+        type = MT_SCALE_XYZ;
       }
 
       // compute
@@ -2293,12 +2294,17 @@ namespace IMGUIZMO_NAMESPACE
 
          // compute matrix & delta
          matrix_t deltaMatrixScale;
-         deltaMatrixScale.Scale(gContext.mScale * gContext.mScaleValueOrigin);
+         auto totscale = gContext.mScale * gContext.mScaleValueOrigin;
+         float mul = totscale[0] * totscale[1] * totscale[2];
+         bool valid = mul > 1e-6;
 
-         matrix_t res = deltaMatrixScale * gContext.mModelLocal;
-         *(matrix_t*)matrix = res;
+         if (valid) {
+            deltaMatrixScale.Scale(gContext.mScale * gContext.mScaleValueOrigin);
+            matrix_t res = deltaMatrixScale * gContext.mModelLocal;
+            *(matrix_t*)matrix = res;
+         }
 
-         if (deltaMatrix)
+         if (valid && deltaMatrix)
          {
             vec_t deltaScale = gContext.mScale * gContext.mScaleValueOrigin;
 
