@@ -2534,9 +2534,12 @@ namespace IMGUIZMO_NAMESPACE
       {
          if (!gContext.mbUsingBounds)
          {
-            manipulated = HandleTranslation(matrix, deltaMatrix, operation, type, snap) ||
-                          HandleScale(matrix, deltaMatrix, operation, type, snap) ||
-                          HandleRotation(matrix, deltaMatrix, operation, type, snap);
+            const float *rotSnap = snap;
+            const float *scaleSnap = snap + 1;
+            const float *transSnap = snap + 2;
+            manipulated = HandleTranslation(matrix, deltaMatrix, operation, type, transSnap) ||
+                          HandleScale(matrix, deltaMatrix, operation, type, scaleSnap) ||
+                          HandleRotation(matrix, deltaMatrix, operation, type, rotSnap);
          }
       }
 
