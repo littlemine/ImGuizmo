@@ -1403,10 +1403,12 @@ namespace IMGUIZMO_NAMESPACE
          }
       }
 
+#if 0
       // draw screen cirle
       if (!(gContext.mbUsing && (gContext.mActualID == -1 || gContext.mActualID == gContext.mEditingID) && type != MT_SCALE_XYZ))
          // check ComputeContext, rect length is 20.f
          drawList->AddCircle(gContext.mScreenSquareCenter, 20.f, colors[0], 32, 2.5f);  // gContext.mStyle.CenterCircleSize
+#endif
 
       if (gContext.mbUsing && (gContext.mActualID == -1 || gContext.mActualID == gContext.mEditingID) && IsScaleType(type))
       {
@@ -1491,7 +1493,8 @@ namespace IMGUIZMO_NAMESPACE
       }
 
       // draw screen cirle
-      drawList->AddCircle(gContext.mScreenSquareCenter, 20.f, colors[0], 32, gContext.mStyle.CenterCircleSize);
+      if (!(gContext.mbUsing && (gContext.mActualID == -1 || gContext.mActualID == gContext.mEditingID) && type != MT_SCALE_XYZ))
+         drawList->AddCircle(gContext.mScreenSquareCenter, 20.f, colors[0], 32, gContext.mStyle.CenterCircleSize);
 
       if (gContext.mbUsing && (gContext.mActualID == -1 || gContext.mActualID == gContext.mEditingID) && IsScaleType(type))
       {
@@ -1893,7 +1896,7 @@ namespace IMGUIZMO_NAMESPACE
       int type = MT_NONE;
 
       // screen (gContext.mScreenSquareMax - Min diameter)
-      if ((makeVect(io.MousePos) - makeVect(gContext.mScreenSquareCenter)).LengthSq() <= 20 * 20 * 2
+      if ((makeVect(io.MousePos) - makeVect(gContext.mScreenSquareCenter)).LengthSq() <= 21 * 21 * 2
           && Contains(op, SCALE)) {
         type = MT_SCALE_XYZ;
       }
