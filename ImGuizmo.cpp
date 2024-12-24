@@ -1533,7 +1533,7 @@ namespace IMGUIZMO_NAMESPACE
       }
 
       // draw screen cirle
-      if (!(gContext.mbUsing && (gContext.mActualID == -1 || gContext.mActualID == gContext.mEditingID) && type != MT_SCALE_XYZ))
+      if (!(gContext.mbUsing && (gContext.GetCurrentID() == -1 || gContext.GetCurrentID() == gContext.mEditingID) && type != MT_SCALE_XYZ))
          drawList->AddCircle(gContext.mScreenSquareCenter, 20.f, colors[0], 32, gContext.mStyle.CenterCircleSize);
 
       if (gContext.mbUsing && (gContext.GetCurrentID() == gContext.mEditingID) && IsScaleType(type))
@@ -1628,7 +1628,7 @@ namespace IMGUIZMO_NAMESPACE
          }
       }
 
-      if (!(gContext.mbUsing && (gContext.mActualID == -1 || gContext.mActualID == gContext.mEditingID) && type == MT_SCALE_XYZ))
+      if (!(gContext.mbUsing && (gContext.GetCurrentID() == -1 || gContext.GetCurrentID() == gContext.mEditingID) && type == MT_SCALE_XYZ))
          drawList->AddCircleFilled(gContext.mScreenSquareCenter, gContext.mStyle.CenterCircleSize, colors[0], 32);
 
       if (gContext.mbUsing && (gContext.GetCurrentID() == gContext.mEditingID) && IsTranslateType(type))
