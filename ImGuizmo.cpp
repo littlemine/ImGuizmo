@@ -1,9 +1,9 @@
 // https://github.com/CedricGuillemet/ImGuizmo
-// v1.91.3 WIP
+// v1.92.5 WIP
 //
 // The MIT License(MIT)
 //
-// Copyright(c) 2021 Cedric Guillemet
+// Copyright(c) 2016-2021 Cedric Guillemet
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -1271,26 +1271,26 @@ namespace IMGUIZMO_NAMESPACE
       }
       ImDrawList* drawList = gContext.mDrawList;
 
-      bool isMultipleAxesMasked = gContext.mAxisMask & (gContext.mAxisMask - 1);
+      bool isMultipleAxesMasked = (gContext.mAxisMask & (gContext.mAxisMask - 1)) != 0;
       bool isNoAxesMasked = !gContext.mAxisMask;
 
       // colors
       ImU32 colors[7];
       ComputeColors(colors, type, ROTATE);
 
-      vec_t cameraToModelNormalized;
+      vec_t viewDirNormalized;
       if (gContext.mIsOrthographic)
       {
          matrix_t viewInverse;
          viewInverse.Inverse(*(matrix_t*)&gContext.mViewMat);
-         cameraToModelNormalized = -viewInverse.v.dir;
+         viewDirNormalized = -viewInverse.v.dir;
       }
       else
       {
-         cameraToModelNormalized = Normalized(gContext.mModel.v.position - gContext.mCameraEye);
+         viewDirNormalized = Normalized(gContext.mCameraDir);
       }
 
-      cameraToModelNormalized.TransformVector(gContext.mModelInverse);
+      viewDirNormalized.TransformVector(gContext.mModelInverse);
 
       gContext.mRadiusSquareCenter = screenRotateSize * gContext.mHeight;
 
@@ -1302,7 +1302,7 @@ namespace IMGUIZMO_NAMESPACE
             continue;
          }
 
-         bool isAxisMasked = (1 << (2 - axis)) & gContext.mAxisMask;
+         bool isAxisMasked = ((1 << (2 - axis)) & gContext.mAxisMask) != 0;
 
          if ((!isAxisMasked || isMultipleAxesMasked) && !isNoAxesMasked)
          {
@@ -1313,7 +1313,7 @@ namespace IMGUIZMO_NAMESPACE
 
          ImVec2* circlePos = (ImVec2*)alloca(sizeof(ImVec2) * (circleMul * halfCircleSegmentCount + 1));
 
-         float angleStart = atan2f(cameraToModelNormalized[(4 - axis) % 3], cameraToModelNormalized[(3 - axis) % 3]) + ZPI * 0.5f;
+         float angleStart = atan2f(viewDirNormalized[(4 - axis) % 3], viewDirNormalized[(3 - axis) % 3]) + (gContext.mIsOrthographic ? ZPI : -ZPI) * 0.5f;
 
          for (int i = 0; i < circleMul * halfCircleSegmentCount + 1; i++)
          {
@@ -1662,10 +1662,12 @@ namespace IMGUIZMO_NAMESPACE
       return false;
    }
 
-   static void HandleAndDrawLocalBounds(const float* bounds, matrix_t* matrix, const float* snapValues, OPERATION operation)
+   static bool HandleAndDrawLocalBounds(const float* bounds, matrix_t* matrix, const float* snapValues, OPERATION operation)
    {
       ImGuiIO& io = ImGui::GetIO();
       ImDrawList* drawList = gContext.mDrawList;
+
+      bool manipulated = false;
 
       // compute best projection axis
       vec_t axesWorldDirections[3];
@@ -1891,6 +1893,10 @@ namespace IMGUIZMO_NAMESPACE
                   }
                }
                scale.component[axisIndex1] *= ratioAxis;
+
+               if (fabsf(ratioAxis - 1.0f) > FLT_EPSILON) {
+                  manipulated = true;
+               }
             }
 
             // transform matrix
@@ -1921,6 +1927,8 @@ namespace IMGUIZMO_NAMESPACE
             break;
          }
       }
+
+      return manipulated;
    }
 
    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1948,7 +1956,7 @@ namespace IMGUIZMO_NAMESPACE
          {
             continue;
          }
-         bool isAxisMasked = (1 << i) & gContext.mAxisMask;
+         bool isAxisMasked = ((1 << i) & gContext.mAxisMask) != 0;
 
          vec_t dirPlaneX, dirPlaneY, dirAxis;
          bool belowAxisLimit, belowPlaneLimit;
@@ -2022,7 +2030,7 @@ namespace IMGUIZMO_NAMESPACE
       }
 
       bool isNoAxesMasked = !gContext.mAxisMask;
-      bool isMultipleAxesMasked = gContext.mAxisMask & (gContext.mAxisMask - 1);
+      bool isMultipleAxesMasked = (gContext.mAxisMask & (gContext.mAxisMask - 1)) != 0;
 
       ImGuiIO& io = ImGui::GetIO();
       int type = MT_NONE;
@@ -2047,7 +2055,7 @@ namespace IMGUIZMO_NAMESPACE
          {
             continue;
          }
-         bool isAxisMasked = (1 << i) & gContext.mAxisMask;
+         bool isAxisMasked = ((1 << i) & gContext.mAxisMask) != 0;
          // pickup plan
          vec_t pickupPlan = BuildPlan(gContext.mModel.v.position, planNormals[i]);
 
@@ -2089,7 +2097,7 @@ namespace IMGUIZMO_NAMESPACE
       }
 
       bool isNoAxesMasked = !gContext.mAxisMask;
-      bool isMultipleAxesMasked = gContext.mAxisMask & (gContext.mAxisMask - 1);
+      bool isMultipleAxesMasked = (gContext.mAxisMask & (gContext.mAxisMask - 1)) != 0;
 
       ImGuiIO& io = ImGui::GetIO();
       int type = MT_NONE;
@@ -2107,7 +2115,7 @@ namespace IMGUIZMO_NAMESPACE
       // compute
       for (int i = 0; i < 3 && type == MT_NONE; i++)
       {
-         bool isAxisMasked = (1 << i) & gContext.mAxisMask;
+         bool isAxisMasked = ((1 << i) & gContext.mAxisMask) != 0;
          vec_t dirPlaneX, dirPlaneY, dirAxis;
          bool belowAxisLimit, belowPlaneLimit;
          ComputeTripodAxisAndVisibility(i, dirAxis, dirPlaneX, dirPlaneY, belowAxisLimit, belowPlaneLimit);
@@ -2624,6 +2632,10 @@ namespace IMGUIZMO_NAMESPACE
    {
       IM_ASSERT(gContext.mIDStack.Size > 1); // Too many PopID(), or could be popping in a wrong/different window?
       gContext.mIDStack.pop_back();
+      if (gContext.mIDStack.empty())
+      {
+         gContext.mIDStack.clear();
+      }
    }
 
    void AllowAxisFlip(bool value)
@@ -2693,7 +2705,7 @@ namespace IMGUIZMO_NAMESPACE
 
       if (localBounds && !gContext.mbUsing)
       {
-         HandleAndDrawLocalBounds(localBounds, (matrix_t*)matrix, boundsSnap, operation);
+         manipulated |= HandleAndDrawLocalBounds(localBounds, (matrix_t*)matrix, boundsSnap, operation);
       }
 
       gContext.mOperation = operation;
@@ -3049,7 +3061,8 @@ namespace IMGUIZMO_NAMESPACE
                   gContext.mDrawList->AddConvexPolyFilled(faceCoordsScreen, 4, (directionColor | IM_COL32(0x80, 0x80, 0x80, 0x80)) | (gContext.mIsViewManipulatorHovered ? IM_COL32(0x08, 0x08, 0x08, 0) : 0));
                   if (boxes[boxCoordInt])
                   {
-                     gContext.mDrawList->AddConvexPolyFilled(faceCoordsScreen, 4, IM_COL32(0xF0, 0xA0, 0x60, 0x80));
+                     ImU32 selectionColor = GetColorU32(SELECTION);
+                     gContext.mDrawList->AddConvexPolyFilled(faceCoordsScreen, 4, selectionColor);
 
                      if (io.MouseDown[0] && !isClicking && !isDraging && GImGui->ActiveId == 0) {
                         overBox = boxCoordInt;
@@ -3149,6 +3162,13 @@ namespace IMGUIZMO_NAMESPACE
       }
 
       gContext.mbUsingViewManipulate = (interpolationFrames != 0) || isDraging;
+      if (isClicking || gContext.mbUsingViewManipulate || gContext.mIsViewManipulatorHovered) {
+#if IMGUI_VERSION_NUM >= 18723
+         ImGui::SetNextFrameWantCaptureMouse(true);
+#else
+         ImGui::CaptureMouseFromApp();
+#endif
+      }
 
       // restore view/projection because it was used to compute ray
       ComputeContext(svgView.m16, svgProjection.m16, gContext.mModelSource.m16, gContext.mMode);
